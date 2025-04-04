@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, unstable_HistoryRouter, useNavigate } from "react-router-dom";
 import axiosClient from "../axios-client";
 import { useStateContext } from "../contexts/ContextProvider";
 
@@ -8,8 +8,14 @@ export default function Signup() {
     const emailRef = useRef();
     const passwordRef = useRef();
     const passwordConfirmationRef = useRef();
-
+    let errorMessage = null;
+    const navigate = useNavigate();
     const { setUser, setToken } = useStateContext();
+    useEffect(() => {
+        if (token) {
+            navigate('/games');
+        }
+    }, [token]);
 
     const onSubmit = (event) => {
         event.preventDefault();
@@ -18,7 +24,7 @@ export default function Signup() {
             name: nameRef.current.value,
             email: emailRef.current.value,
             password: passwordRef.current.value,
-            password_confirmation: passwordConfirmationRef.current.value, // ✅ Correction ici
+            password_confirmation: passwordConfirmationRef.current.value, 
         };
 
         console.log('Payload:', payload);
@@ -27,7 +33,11 @@ export default function Signup() {
             .then(({ data }) => {
                 console.log('API Response:', data);
                 setToken(data.token);
+                localStorage.setItem('ACCESS_TOKEN', data.token);
+                console.log('token:', data.token);
                 setUser(data.user);
+                navigate('/games');
+                
             })
             .catch(err => {
                 console.error('Full error object:', err);
@@ -40,7 +50,9 @@ export default function Signup() {
                     });
 
                     if (err.response.status === 422) {
-                        alert(JSON.stringify(err.response.data.errors));
+                        errorMessage = err.response.data.errors
+                        
+                        console.log('errorMessage:', errorMessage);
                     } else if (err.response.status === 500) {
                         alert('Erreur serveur : ' + err.response.data.error);
                     }
@@ -49,6 +61,7 @@ export default function Signup() {
                     alert('Erreur réseau/Connexion refusée');
                 }
             });
+
     };
 
     return (
@@ -56,6 +69,11 @@ export default function Signup() {
             <div className="form">
                 <form onSubmit={onSubmit}>
                     <h1>Register</h1>
+                    {/* {errorMessage && <div> 
+                     {Object.keys(errors).map(key=>(
+                        <p key={key}>{errors[key][0]}</p>
+                    ))}    
+                    </div>} //////////////Todo mais avec le fronted////////////////*/} 
                     <input ref={nameRef} type="text" placeholder="Full name" />
                     <input ref={emailRef} type="email" placeholder="Email" />
                     <input ref={passwordRef} type="password" placeholder="Password" />
